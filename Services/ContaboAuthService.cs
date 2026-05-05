@@ -51,7 +51,14 @@ public class ContaboAuthService
         });
 
         var response = await _httpClient.PostAsync(_settings.AuthUrl, requestBody, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("Contabo Authentication failed with status {StatusCode}: {ErrorBody}", 
+                response.StatusCode, errorJson);
+            throw new InvalidOperationException($"Authentication failed: {errorJson}");
+        }
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
         var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(json)
